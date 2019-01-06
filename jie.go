@@ -20,6 +20,7 @@ type Engine struct {
 	// 所有连接管理
 	conns []net.Conn
 
+	// 自定义协议创建
 	protocolFunc ProtocolFunc
 	routerFunc   RouterFunc
 }

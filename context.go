@@ -17,6 +17,10 @@ func (self *Context) BindProtoReq(p proto.Message) error {
 	return proto.Unmarshal(self.DP.Data(), p)
 }
 
-func (self *Context) PackProtoResp() []byte {
+func (self *Context) PackProtoResp(p proto.Message) ([]byte, error) {
+	return proto.Marshal(p)
+}
 
+func (self *Context) Send(d []byte) (int, error) {
+	return self.Link.Conn.Write(d)
 }

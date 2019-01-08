@@ -1,12 +1,14 @@
-package ptl
+package protocol
 
 import (
 	"errors"
 
+	"github.com/Justyer/jie"
+
 	"github.com/Justyer/lingo/bytes"
 )
 
-type DataPack_2_2_4 struct {
+type Protocol struct {
 	OgnByte  []byte
 	MsgType  uint16
 	MsgCmd   uint16
@@ -14,13 +16,21 @@ type DataPack_2_2_4 struct {
 	DataByte []byte
 }
 
-func NewDataPack_2_2_4() *DataPack_2_2_4 {
-	return &DataPack_2_2_4{}
+func NewProtocol() *Protocol {
+	return &Protocol{}
+}
+
+func AssertProtocol(p jie.IProtocol) *Protocol {
+	return p.(*Protocol)
+}
+
+func (self *Protocol) New() jie.IProtocol {
+	return &Protocol{}
 }
 
 // 判断字节数组是否完整
 // 这个方法只能判断这个字节数组是否可以解析，不能保证一定包含这个协议
-func (self *DataPack_2_2_4) IsWhole(buf []byte) bool {
+func (self *Protocol) IsWhole(buf []byte) bool {
 	buf_len := len(buf)
 	// 如果字节长度大于8，才可能是完整的数据包（不是一定）
 	if buf_len < 8 {
@@ -35,7 +45,7 @@ func (self *DataPack_2_2_4) IsWhole(buf []byte) bool {
 }
 
 // 解析数据包
-func (self *DataPack_2_2_4) Parse(b []byte) {
+func (self *Protocol) Parse(b []byte) {
 	var type_b, cmd_b, len_b []byte
 
 	for i := 0; i < 8; i++ {
@@ -58,11 +68,15 @@ func (self *DataPack_2_2_4) Parse(b []byte) {
 }
 
 // 从字节流中获取数据包
-func (self *DataPack_2_2_4) Get(b []byte) (int, error) {
+func (self *Protocol) Get(b []byte) (int, error) {
 	if self.IsWhole(b) {
 		self.Parse(b)
 		self.OgnByte = b[:self.DataLen+8]
 		return int(self.DataLen) + 8, nil
 	}
 	return 0, errors.New("buf is not a whole datapack")
+}
+
+func (self *Protocol) Data() []byte {
+	return self.DataByte
 }

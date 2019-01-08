@@ -1,7 +1,9 @@
 package jie
 
-type Protocol interface {
+type IProtocol interface {
 	IsWhole([]byte) bool
 	Parse([]byte)
 	Get([]byte) (int, error)
+	New() IProtocol
+	Data() []byte
 }

@@ -9,20 +9,15 @@ import (
 	"github.com/Justyer/lingo/ip"
 )
 
-type ProtocolFunc func() Protocol
-
-type RouterFunc func(*Context, Protocol)
+type RouterFunc func(*Context)
 
 type Engine struct {
-	// 路由管理
-	RouterGroup
-
 	// 所有连接管理
 	conns []net.Conn
 
-	// 自定义协议创建
-	protocolFunc ProtocolFunc
-	routerFunc   RouterFunc
+	Router IRouter
+
+	Protocol IProtocol
 }
 
 func New() *Engine {
@@ -30,20 +25,23 @@ func New() *Engine {
 	return e
 }
 
+// *********
+// 初始化设置
+// *********
+
 // 设置自定义协议
-func (self *Engine) SetProtocol(f ProtocolFunc) {
-	self.protocolFunc = f
+func (self *Engine) SetProtocol(p IProtocol) {
+	self.Protocol = p
 }
 
-// 设置路由规则
-func (self *Engine) SetRouter(r RouterFunc) {
-	self.routerFunc = r
+// 设置自定义路由
+func (self *Engine) SetRouter(r IRouter) {
+	self.Router = r
 }
 
-// 实例化协议
-func (self *Engine) NewProtocol() Protocol {
-	return self.protocolFunc()
-}
+// ***
+// 监听
+// ***
 
 // 本地监听
 func (self *Engine) ListenAndLocalServe(port string) {
@@ -78,6 +76,10 @@ func (self *Engine) ListenAndServe(addr string) {
 	}
 }
 
+// ************
+// 每条连接的处理
+// ************
+
 func (self *Engine) dealData(conn net.Conn) {
 	defer conn.Close()
 
@@ -94,14 +96,15 @@ func (self *Engine) dealData(conn net.Conn) {
 			return
 		}
 
-		p := self.NewProtocol()
+		p := self.Protocol.New()
 		l, err := p.Get(lnk.BufPool)
 		if err != nil {
 			log.Err("[buf not enough]: %s", err.Error())
 		}
 		c := NewContext()
 		c.Link = lnk
-		self.routerFunc(c, p)
+		c.DP = p
+		self.Router.Deal(c)
 
 		lnk.BufPop(l)
 	}

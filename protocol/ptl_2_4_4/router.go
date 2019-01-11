@@ -27,16 +27,16 @@ func (self *Router) Deal(c *jie.Context) {
 	msg_type := dp.MsgType
 	msg_cmd := dp.MsgCmd
 
-	var rs = []uint16{
-		msg_type, msg_cmd,
-	}
+	self.Do(c, msg_type, msg_cmd)
+}
 
+func (self *Router) Do(c *jie.Context, rs ...interface{}) {
 	var i int = 0
 	var l int = len(rs) - 1
 	tree := self.Tree
 	var f jie.RouterFunc
 	for {
-		r := rs[i]
+		r := rs[i].(uint16)
 		node, ok := tree[r]
 		if i == l {
 			if ok {

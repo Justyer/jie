@@ -25,9 +25,9 @@ func New() *Engine {
 	return e
 }
 
-// *********
-// 初始化设置
-// *********
+// ************
+//  初始化设置
+// ************
 
 // 设置自定义协议
 func (self *Engine) SetProtocol(p IProtocol) {
@@ -39,9 +39,9 @@ func (self *Engine) SetRouter(r IRouter) {
 	self.Router = r
 }
 
-// ***
-// 监听
-// ***
+// ************
+//    监听
+// ************
 
 // 本地监听
 func (self *Engine) ListenAndLocalServe(port string) {
@@ -87,7 +87,7 @@ func (self *Engine) dealData(conn net.Conn) {
 	lnk.Conn = conn
 
 	for {
-		if err := lnk.Read(50); err != nil {
+		if err := lnk.Read(512); err != nil {
 			if err == io.EOF {
 				log.Err("[link-close-iport]: (%s)", lnk.Conn.RemoteAddr().String())
 				return
@@ -99,11 +99,13 @@ func (self *Engine) dealData(conn net.Conn) {
 		p := self.Protocol.New()
 		l, err := p.Get(lnk.BufPool)
 		if err != nil {
-			log.Err("[buf not enough]: %s", err.Error())
+			log.Err("[buf not enough]: %v %s", lnk.BufPool, err.Error())
+			continue
 		}
 		c := NewContext()
 		c.Link = lnk
 		c.DP = p
+		c.RT = self.Router
 		self.Router.Deal(c)
 
 		lnk.BufPop(l)

@@ -2,23 +2,22 @@ package main
 
 import (
 	"github.com/Justyer/jie"
-	ptl "github.com/Justyer/jie/protocol"
+	protocol "github.com/Justyer/jie/protocol/ptl_2_2_4"
 )
 
 func main() {
 	j := jie.New()
 
 	// 设置协议
-	j.SetProtocol(func() jie.Protocol {
-		return ptl.NewDataPack_2_2_4()
-	})
+	j.SetProtocol(protocol.NewProtocol())
 
-	// 设定路由的具体实现
-	j.SetRouter(func(c *jie.Context, p jie.Protocol) {
-		// dp := p.(*ptl.DataPack_2_2_4)
+	// 设置路由
+	j.SetRouter(protocol.NewRouter())
 
-		// 这里写路由业务
-	})
+	// 添加路由
+	j.Router.GET(func(c *jie.Context) {
+		c.Send([]byte("JekoWorld~"))
+	}, uint16(1), uint16(2))
 
 	// 开启内网监听
 	j.ListenAndInnerServe("9595")

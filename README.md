@@ -13,7 +13,7 @@
 * 具体实现由插件提供，插件要保证实现了主引擎所需的接口方法
 
 ## 类图
-![class_diagram](class_diagram.jpg)
+![class_diagram](class_diagram.png)
 
 ## 使用
 

@@ -8,50 +8,56 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// Context ： 上下文
 type Context struct {
 	Link *Link
 	DP   IProtocol
 	RT   IRouter
 }
 
+// NewContext ： 实例化
 func NewContext() *Context {
 	return &Context{}
 }
 
-func (self *Context) BindProtoReq(p proto.Message) error {
-	return proto.Unmarshal(self.DP.Data(), p)
+// BindProtoReq ： 绑定proto请求
+func (c *Context) BindProtoReq(p proto.Message) error {
+	return proto.Unmarshal(c.DP.Data(), p)
 }
 
-func (self *Context) PackProtoResp(p proto.Message) ([]byte, error) {
+// PackProtoResp : 封装proto响应
+func (c *Context) PackProtoResp(p proto.Message) ([]byte, error) {
 	return proto.Marshal(p)
 }
 
-// 给本连接发送数据
-func (self *Context) Send(d []byte) (int, error) {
-	return self.Link.Conn.Write(d)
+// Send : 给本连接发送数据
+func (c *Context) Send(d []byte) (int, error) {
+	return c.Link.Conn.Write(d)
 }
 
-// 重定向到某一条路由
-func (self *Context) Redirect(rs ...interface{}) {
-	self.RT.Do(self, rs...)
+// Redirect : 重定向到某一条路由
+func (c *Context) Redirect(rs ...interface{}) {
+	c.RT.Do(c, rs...)
 }
 
-// 广播数据
-func (self *Context) Broadcast(d []byte, cs []net.Conn) string {
-	var errs_str []string
-	for i, _ := range cs {
+// Broadcast : 广播数据
+func (c *Context) Broadcast(d []byte, cs []net.Conn) string {
+	var errsStr []string
+	for i := 0; i < len(cs); i++ {
 		if _, err := cs[i].Write(d); err != nil {
-			err_str := fmt.Sprintf("%s:%s", cs[i].RemoteAddr(), err.Error())
-			errs_str = append(errs_str, err_str)
+			errStr := fmt.Sprintf("%s:%s", cs[i].RemoteAddr(), err.Error())
+			errsStr = append(errsStr, errStr)
 		}
 	}
-	return strings.Join(errs_str, ";")
+	return strings.Join(errsStr, ";")
 }
 
-func (self *Context) Get(k string) interface{} {
-	return self.Link.Cache[k]
+// Get : 获取上下文缓存
+func (c *Context) Get(k string) interface{} {
+	return c.Link.Cache[k]
 }
 
-func (self *Context) Put(k string, v interface{}) {
-	self.Link.Cache[k] = v
+// Put : 设置上下文缓存
+func (c *Context) Put(k string, v interface{}) {
+	c.Link.Cache[k] = v
 }

@@ -5,39 +5,46 @@ import (
 	"github.com/Justyer/jie"
 )
 
+// Node : 路由树节点
 type Node struct {
 	Value uint16
 	Func  jie.RouterFunc
 	Node  map[uint16]*Node
 }
 
+// Router : 自定义路由
+// 由协议和路由树组成
 type Router struct {
+	// 路由对应的协议
 	Protocol jie.IProtocol
-	Tree     map[uint16]*Node
+	// 路由树
+	Tree map[uint16]*Node
 }
 
+// NewRouter : 实例化
 func NewRouter() *Router {
 	r := &Router{}
 	r.Tree = make(map[uint16]*Node)
 	return r
 }
 
-func (self *Router) Deal(c *jie.Context) {
+// Forward : 当请求来临时，转发给对应的路由
+func (r *Router) Forward(c *jie.Context) {
 	dp := c.DP.(*Protocol)
-	msg_type := dp.MsgType
-	msg_cmd := dp.MsgCmd
+	msgType := dp.MsgType
+	msgCmd := dp.MsgCmd
 
-	self.Do(c, msg_type, msg_cmd)
+	r.Do(c, msgType, msgCmd)
 }
 
-func (self *Router) Do(c *jie.Context, rs ...interface{}) {
-	var i int = 0
-	var l int = len(rs) - 1
-	tree := self.Tree
+// Do : 执行对应路由
+func (r *Router) Do(c *jie.Context, rs ...interface{}) {
+	i, l := 0, len(rs)-1
+	tree := r.Tree
 	var f jie.RouterFunc
 	for {
-		r := rs[i].(uint16)
-		node, ok := tree[r]
+		msg := rs[i].(uint16)
+		node, ok := tree[msg]
 		if i == l {
 			if ok {
 				f = node.Func
@@ -51,37 +58,39 @@ func (self *Router) Do(c *jie.Context, rs ...interface{}) {
 	f(c)
 }
 
-func (self *Router) GET(f jie.RouterFunc, rs ...interface{}) jie.IRouter {
-	var i int = 0
-	var l int = len(rs) - 1
-	tree := self.Tree
+// GET : 保存路由与控制器之间的关系
+func (r *Router) GET(f jie.RouterFunc, rs ...interface{}) jie.IRouter {
+	i, l := 0, len(rs)-1
+	tree := r.Tree
 	for {
-		r := rs[i].(uint16)
-		node, ok := tree[r]
+		msg := rs[i].(uint16)
+		node, ok := tree[msg]
 		if i == l {
 			if ok {
-				node.Value = r
+				node.Value = msg
 				node.Func = f
 				node.Node = make(map[uint16]*Node)
 				break
 			} else {
 				var n Node
-				n.Value = r
+				n.Value = msg
 				n.Func = f
 				n.Node = make(map[uint16]*Node)
-				tree[r] = &n
+				tree[msg] = &n
 				break
 			}
 		}
 		i++
 	}
-	return self
+	return r
 }
 
-func (self *Router) SetProtocol(p jie.IProtocol) {
-	self.Protocol = p
+// SetProtocol : 设置协议
+func (r *Router) SetProtocol(p jie.IProtocol) {
+	r.Protocol = p
 }
 
+// NoRouter : 当路由不存在时的默认返回方法
 func NoRouter(c *jie.Context) {
 	p := c.DP.(*Protocol)
 	log.Tx("[no_router]: %d %d", p.MsgType, p.MsgCmd)

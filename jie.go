@@ -9,8 +9,15 @@ import (
 	"github.com/Justyer/lingo/ip"
 )
 
+var (
+	// MaxBufferSize : 从TCP缓冲区一次读取数据的最大容量
+	MaxBufferSize = 512
+)
+
+// RouterFunc : 自定义路由
 type RouterFunc func(*Context)
 
+// Engine : 主引擎
 type Engine struct {
 	// 所有连接管理
 	conns []net.Conn
@@ -20,6 +27,7 @@ type Engine struct {
 	Protocol IProtocol
 }
 
+// New : 实例化引擎
 func New() *Engine {
 	e := &Engine{}
 	return e
@@ -29,33 +37,33 @@ func New() *Engine {
 //  初始化设置
 // ************
 
-// 设置自定义协议
-func (self *Engine) SetProtocol(p IProtocol) {
-	self.Protocol = p
+// SetProtocol : 设置自定义协议
+func (e *Engine) SetProtocol(p IProtocol) {
+	e.Protocol = p
 }
 
-// 设置自定义路由
-func (self *Engine) SetRouter(r IRouter) {
-	self.Router = r
+// SetRouter : 设置自定义路由
+func (e *Engine) SetRouter(r IRouter) {
+	e.Router = r
 }
 
 // ************
 //    监听
 // ************
 
-// 本地监听
-func (self *Engine) ListenAndLocalServe(port string) {
-	self.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", port))
+// ListenAndLocalServe : 本地监听
+func (e *Engine) ListenAndLocalServe(port string) {
+	e.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", port))
 }
 
-// 内网监听
-func (self *Engine) ListenAndInnerServe(port string) {
+// ListenAndInnerServe : 内网监听
+func (e *Engine) ListenAndInnerServe(port string) {
 	ip := ip.MustInnerIP()
-	self.ListenAndServe(fmt.Sprintf("%s:%s", ip, port))
+	e.ListenAndServe(fmt.Sprintf("%s:%s", ip, port))
 }
 
-// 自定义地址监听
-func (self *Engine) ListenAndServe(addr string) {
+// ListenAndServe : 自定义地址监听
+func (e *Engine) ListenAndServe(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	defer listener.Close()
 	if err != nil {
@@ -71,8 +79,8 @@ func (self *Engine) ListenAndServe(addr string) {
 		}
 
 		log.Info("[link-start-iport]: (%s)", conn.RemoteAddr().String())
-		self.conns = append(self.conns, conn)
-		go self.dealData(conn)
+		e.conns = append(e.conns, conn)
+		go e.dealData(conn)
 	}
 }
 
@@ -80,14 +88,14 @@ func (self *Engine) ListenAndServe(addr string) {
 // 每条连接的处理
 // ************
 
-func (self *Engine) dealData(conn net.Conn) {
+func (e *Engine) dealData(conn net.Conn) {
 	defer conn.Close()
 
 	lnk := NewLink()
 	lnk.Conn = conn
 
 	for {
-		if err := lnk.Read(512); err != nil {
+		if err := lnk.Read(MaxBufferSize); err != nil {
 			if err == io.EOF {
 				log.Err("[link-close-iport]: (%s)", lnk.Conn.RemoteAddr().String())
 				return
@@ -96,7 +104,7 @@ func (self *Engine) dealData(conn net.Conn) {
 			return
 		}
 
-		p := self.Protocol.New()
+		p := e.Protocol.New()
 		l, err := p.Get(lnk.BufPool)
 		if err != nil {
 			log.Err("[buf not enough]: %v %s", lnk.BufPool, err.Error())
@@ -105,8 +113,8 @@ func (self *Engine) dealData(conn net.Conn) {
 		c := NewContext()
 		c.Link = lnk
 		c.DP = p
-		c.RT = self.Router
-		self.Router.Deal(c)
+		c.RT = e.Router
+		e.Router.Forward(c)
 
 		lnk.BufPop(l)
 	}

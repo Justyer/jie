@@ -1,6 +1,7 @@
 package jie
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -41,7 +42,7 @@ func (c *Context) Redirect(rs ...interface{}) {
 }
 
 // Broadcast : 广播数据
-func (c *Context) Broadcast(d []byte, cs []net.Conn) string {
+func (c *Context) Broadcast(d []byte, cs []net.Conn) error {
 	var errsStr []string
 	for i := 0; i < len(cs); i++ {
 		if _, err := cs[i].Write(d); err != nil {
@@ -49,7 +50,7 @@ func (c *Context) Broadcast(d []byte, cs []net.Conn) string {
 			errsStr = append(errsStr, errStr)
 		}
 	}
-	return strings.Join(errsStr, ";")
+	return errors.New(strings.Join(errsStr, ";"))
 }
 
 // Get : 获取上下文缓存

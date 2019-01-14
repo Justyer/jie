@@ -104,18 +104,21 @@ func (e *Engine) dealData(conn net.Conn) {
 			return
 		}
 
-		p := e.Protocol.New()
-		l, err := p.Get(lnk.BufPool)
-		if err != nil {
-			log.Err("[buf not enough]: %v %s", lnk.BufPool, err.Error())
-			continue
-		}
-		c := NewContext()
-		c.Link = lnk
-		c.DP = p
-		c.RT = e.Router
-		e.Router.Forward(c)
+		// 一次读取的缓冲区数据可能包含多个数据包，所以要循环处理
+		for {
+			p := e.Protocol.New()
+			l, err := p.Get(lnk.BufPool)
+			if err != nil {
+				log.Err("[buf not enough]: %v %s", lnk.BufPool, err.Error())
+				break
+			}
+			c := NewContext()
+			c.Link = lnk
+			c.DP = p
+			c.RT = e.Router
+			e.Router.Forward(c)
 
-		lnk.BufPop(l)
+			lnk.BufPop(l)
+		}
 	}
 }

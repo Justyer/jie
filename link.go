@@ -24,11 +24,11 @@ func NewLink() *Link {
 }
 
 // Read : 从TCP缓冲区中读取数据字节
-func (lnk *Link) Read(bs int) error {
+func (lnk *Link) Read(bs int) ([]byte, error) {
 	buf := make([]byte, bs)
 	l, err := lnk.Conn.Read(buf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 去掉多余的0字节
@@ -36,7 +36,7 @@ func (lnk *Link) Read(bs int) error {
 
 	lnk.BufPool = bytes.Extend(lnk.BufPool, buf)
 
-	return nil
+	return buf, nil
 }
 
 // BufPop : 将匹配好的数据包字节从连接缓冲区打出
